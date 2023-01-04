@@ -11,6 +11,11 @@ export function useMicrophoneStatus(): PermissionState {
       const permission = await navigator.permissions.query({
         name: micPermissionName,
       });
+
+      permission.onchange = () => {
+        setMicStatus(permission.state);
+      };
+
       setMicStatus(permission.state);
     };
 
