@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { VStack, Text, TextProps, IconButtonProps } from "@chakra-ui/react";
+import { VStack, Text, TextProps, IconButtonProps, HStack } from "@chakra-ui/react";
 import { useMicrophoneStatus } from "../../hooks/use-microphone-status";
 import RecordButton from "./record-button";
+import PauseButton from "./pause-button";
+import StopButton from "./stop-button";
 
 function RecorderText(props: TextProps): JSX.Element {
   const micStatus = useMicrophoneStatus();
@@ -24,32 +26,58 @@ function MicButton(props: IconButtonProps): JSX.Element {
   return <RecordButton {...props} disabled={micStatus !== "granted"} />;
 }
 
-function handleMicPermissionSuccess() {}
+// referenced and modified from https://web.dev/media-recording-audio/#save-the-data-from-the-microphone
 
 const Recorder = (): JSX.Element => {
   const [isRecording, setIsRecording] = useState(false);
   const micStatus = useMicrophoneStatus();
+  const [audioStream, setAudioStream] = useState(
+    null as unknown as MediaStream
+  );
+  const [audioData, setAudioData] = useState([] as Blob[]);
+  const [mediaRecorder, setMediaRecorder] = useState(
+    null as unknown as MediaRecorder
+  );
+  const [recordedChunks, setRecordedChunks] = useState([] as Blob[]);
 
-  // get access to the mic
+  // request access to the audio stream
   useEffect(() => {
     navigator.mediaDevices
       .getUserMedia({ audio: true, video: false })
-      .then(handleMicPermissionSuccess);
+      .then((stream) => {
+        setAudioStream(stream);
+      })
+      .catch(console.error);
   }, [micStatus]);
 
-  const handleRecordButtonClick = (
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) => {
-    setIsRecording;
-  };
+  function startRecording() {
+    if (mediaRecorder && mediaRecorder.state === "paused") {
+      mediaRecorder.resume();
+    } else {
+      const options = { mimeType: "audio/webm" };
+      const recordedChunks: Blob[] = [];
+      const newMediaRecorder = new MediaRecorder(audioStream, options);
+
+      newMediaRecorder.addEventListener("dataavailable", function (e) {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      });
+
+      setMediaRecorder(newMediaRecorder);
+      mediaRecorder.start();
+    }
+  }
 
   return (
     <VStack spacing="50px">
       <RecorderText mt="140px" color="white" />
-      <MicButton
-        aria-label="Start recording"
-        onClick={handleRecordButtonClick}
-      />
+      <HStack>
+        <MicButton aria-label="Start recording" onClick={startRecording} />
+        <PauseButton aria-label="Pause" />
+      </HStack>
+      <HStack>
+        <StopButton aria-label="Stop"/>
+        <PauseButton aria-label="Pause or Resume"/>
+      </HStack>
     </VStack>
   );
 };
