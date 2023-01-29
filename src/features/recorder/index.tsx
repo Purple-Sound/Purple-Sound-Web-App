@@ -80,6 +80,15 @@ const Recorder = (): JSX.Element => {
     }
   }
 
+  // implent a function to stop the recording
+  function stopRecording() {
+    mediaRecorder.stop();
+    setMediaRecorderState("inactive");
+    setAudioData(recordedChunks);
+    setRecordedChunks([]);
+    setIsRecording(false);
+  }
+
   return (
     <VStack spacing="50px">
       {isRecording ? (
