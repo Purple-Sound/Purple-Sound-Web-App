@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { VStack, Text, TextProps, IconButtonProps, HStack } from "@chakra-ui/react";
+import {
+  VStack,
+  Text,
+  TextProps,
+  IconButtonProps,
+  HStack,
+} from "@chakra-ui/react";
 import { useMicrophoneStatus } from "../../hooks/use-microphone-status";
 import RecordButton from "./record-button";
 import PauseButton from "./pause-button";
@@ -39,6 +45,7 @@ const Recorder = (): JSX.Element => {
     null as unknown as MediaRecorder
   );
   const [recordedChunks, setRecordedChunks] = useState([] as Blob[]);
+  const [mediaRecorderState, setMediaRecorderState] = useState("inactive" as RecordingState)
 
   // request access to the audio stream
   useEffect(() => {
@@ -51,33 +58,45 @@ const Recorder = (): JSX.Element => {
   }, [micStatus]);
 
   function startRecording() {
-    if (mediaRecorder && mediaRecorder.state === "paused") {
-      mediaRecorder.resume();
-    } else {
       const options = { mimeType: "audio/webm" };
-      const recordedChunks: Blob[] = [];
       const newMediaRecorder = new MediaRecorder(audioStream, options);
 
       newMediaRecorder.addEventListener("dataavailable", function (e) {
-        if (e.data.size > 0) recordedChunks.push(e.data);
+        if (e.data.size > 0) setRecordedChunks(prevChunks => [...prevChunks, e.data]);
       });
 
       setMediaRecorder(newMediaRecorder);
       mediaRecorder.start();
+      setIsRecording(true);
+  }
+
+  function pauseOrResumeRecording() {
+    if(mediaRecorderState === "recording"){
+      mediaRecorder.pause();
+      setMediaRecorderState("paused");
+    } else {
+      mediaRecorder.resume();
+      setMediaRecorderState("recording");
     }
   }
 
   return (
     <VStack spacing="50px">
-      <RecorderText mt="140px" color="white" />
-      <HStack>
-        <MicButton aria-label="Start recording" onClick={startRecording} />
-        <PauseButton aria-label="Pause" />
-      </HStack>
-      <HStack>
-        <StopButton aria-label="Stop"/>
-        <PauseButton aria-label="Pause or Resume"/>
-      </HStack>
+      {isRecording ? (
+        <>
+          <audio id="player" controls></audio>
+          <RecorderText mt="140px" color="white" />
+          <HStack>
+            <StopButton aria-label="Stop" />
+            <PauseButton aria-label="Pause or Resume" onClick={pauseOrResumeRecording}/>
+          </HStack>
+        </>
+      ) : (
+        <>
+          <RecorderText mt="140px" color="white" />
+          <MicButton aria-label="Start recording" onClick={startRecording} />
+        </>
+      )}
     </VStack>
   );
 };
