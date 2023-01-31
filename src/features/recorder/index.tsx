@@ -10,6 +10,7 @@ import { useMicrophoneStatus } from "../../hooks/use-microphone-status";
 import RecordButton from "./record-button";
 import PauseButton from "./pause-button";
 import StopButton from "./stop-button";
+import worker from "./worker";
 
 function RecorderText(props: TextProps): JSX.Element {
   const micStatus = useMicrophoneStatus();
@@ -45,7 +46,9 @@ const Recorder = (): JSX.Element => {
     null as unknown as MediaRecorder
   );
   const [recordedChunks, setRecordedChunks] = useState([] as Blob[]);
-  const [mediaRecorderState, setMediaRecorderState] = useState("inactive" as RecordingState)
+  const [mediaRecorderState, setMediaRecorderState] = useState("inactive" as RecordingState);
+  const [worker, setWorker] = useState(null as unknown as Worker);
+  const [mp3Blob, setMp3Blob] = useState(null as unknown as Blob);
 
   // request access to the audio stream
   useEffect(() => {
@@ -56,6 +59,13 @@ const Recorder = (): JSX.Element => {
       })
       .catch(console.error);
   }, [micStatus]);
+
+
+  useEffect(() => {
+    setWorker(new Worker("./worker.js"));
+    return () => worker.terminate();
+  });
+
 
   function startRecording() {
       const options = { mimeType: "audio/webm" };
@@ -87,6 +97,13 @@ const Recorder = (): JSX.Element => {
     setAudioData(recordedChunks);
     setRecordedChunks([]);
     setIsRecording(false);
+  }
+
+  function convertAudioToMP3() {
+    worker.postMessage({ audioData});
+    worker.onmessage = function (e) {
+      setMp3Blob(e.data);
+    };
   }
 
   return (
