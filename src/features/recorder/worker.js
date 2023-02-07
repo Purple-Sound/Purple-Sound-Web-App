@@ -1,14 +1,17 @@
-import lamejs from 'lamejs';
+//import lamejs from 'lamejs';
+importScripts('https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js');
 
 // excerpt from lamejs documentation
-onmessage = event => {
+onmessage = async event => {
+    const {audioData} = event.data;
     const channels = 1; //1 for mono or 2 for stereo
     const sampleRate = 44100; //44.1khz (normal mp3 samplerate)
     const kbps = 128; //encode 128kbps mp3
     const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
     const mp3Data = [];
 
-    const samples = event.data.audioData; //one second of silence (get your data from the source you have)
+    let samples = new Int16Array(await blobToArrayBuffer(audioData)) //one second of silence (get your data from the source you have)
+    console.log("samples", samples);
     const sampleBlockSize = 1152; //can be anything but make it a multiple of 576 to make encoders life easier
 
     for (let i = 0; i < samples.length; i += sampleBlockSize) {
@@ -29,3 +32,16 @@ onmessage = event => {
     postMessage(blob);
 
 }
+
+// convert an array of blobs to an arraybuffer
+const blobToArrayBuffer = async (blob) => {
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+        reader.onload = () => {
+            resolve(reader.result);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(blob);
+    });
+}
+
