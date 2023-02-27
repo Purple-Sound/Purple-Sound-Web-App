@@ -12,11 +12,13 @@
     "@chakra-ui/react": "^2.4.6",
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
+    "@reduxjs/toolkit": "^1.9.3",
     "framer-motion": "^6.5.1",
     "lamejs": "^1.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.7.1",
+    "react-redux": "^8.0.5",
     "vite-plugin-require": "^1.1.10"
   },
   "devDependencies": {
