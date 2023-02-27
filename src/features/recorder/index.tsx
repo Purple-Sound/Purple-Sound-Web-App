@@ -5,6 +5,7 @@ import {
   TextProps,
   IconButtonProps,
   HStack,
+  Button,
 } from "@chakra-ui/react";
 import { useMicrophoneStatus } from "../../hooks/use-microphone-status";
 import RecordButton from "./record-button";
@@ -27,6 +28,8 @@ function RecorderText(props: TextProps): JSX.Element {
   return <Text {...props}>{text}</Text>;
 }
 
+let componentToRender: JSX.Element;
+
 function MicButton(props: IconButtonProps): JSX.Element {
   const micStatus = useMicrophoneStatus();
 
@@ -45,8 +48,11 @@ const Recorder = (): JSX.Element => {
     null as unknown as MediaRecorder
   );
   const [recordedChunks, setRecordedChunks] = useState([] as Blob[]);
-  const [mediaRecorderState, setMediaRecorderState] = useState("inactive" as RecordingState);
+  const [mediaRecorderState, setMediaRecorderState] = useState(
+    "inactive" as RecordingState
+  );
   const [mp3Blob, setMp3Blob] = useState(null as unknown as Blob);
+  const [isUploading, setIsUploading] = useState(false);
 
   // request access to the audio stream
   useEffect(() => {
@@ -58,34 +64,32 @@ const Recorder = (): JSX.Element => {
       .catch(console.error);
   }, [micStatus]);
 
-
-
-
   function startRecording() {
     console.log(audioStream);
-      const options = { mimeType: "audio/webm" };
-      const newMediaRecorder = new MediaRecorder(audioStream, options);
+    const options = { mimeType: "audio/webm" };
+    const newMediaRecorder = new MediaRecorder(audioStream, options);
 
-      newMediaRecorder.ondataavailable = function (e) {
-        console.log("a", e.data);
-        if (e.data.size > 0) setRecordedChunks(prevChunks => [...prevChunks, e.data]);
-      };
+    newMediaRecorder.ondataavailable = function (e) {
+      console.log("a", e.data);
+      if (e.data.size > 0)
+        setRecordedChunks((prevChunks) => [...prevChunks, e.data]);
+    };
 
-      setMediaRecorder(newMediaRecorder);
-      setIsRecording(true);
+    setMediaRecorder(newMediaRecorder);
+    setIsRecording(true);
   }
 
   useEffect(() => {
-    if(mediaRecorder){
+    if (mediaRecorder) {
       mediaRecorder.start();
       setMediaRecorderState("recording");
     }
-  },[mediaRecorder]);
+  }, [mediaRecorder]);
 
   function pauseOrResumeRecording() {
     console.log("mediaRecorderState", mediaRecorderState);
     console.log("recordedChunks", recordedChunks);
-    if(mediaRecorderState === "recording"){
+    if (mediaRecorderState === "recording") {
       mediaRecorder.pause();
       setMediaRecorderState("paused");
     } else {
@@ -111,25 +115,76 @@ const Recorder = (): JSX.Element => {
     }
   }, [mediaRecorderState, recordedChunks]);
 
-  return (
-    <VStack spacing="50px">
-      {mp3Blob && <AudioPlayer mp3Blob={mp3Blob}/>}
-      {isRecording ? (
-        <>
-          <RecorderText mt="140px" color="white" />
-          <HStack>
-            <StopButton aria-label="Stop" onClick={stopRecording}/>
-            <PauseButton aria-label="Pause or Resume" onClick={pauseOrResumeRecording}/>
-          </HStack>
-        </>
-      ) : (
-        <>
-          <RecorderText mt="140px" color="white" />
-          <MicButton aria-label="Start recording" onClick={startRecording} />
-        </>
-      )}
-    </VStack>
-  );
+  async function uploadAudio() {
+    if (!mp3Blob) {
+      return;
+    }
+
+    setIsUploading(true);
+
+    const formData = new FormData();
+    formData.append("audio", mp3Blob, "audio.wav");
+
+    let response: Response = new Response();
+    try {
+      response = await fetch("https://purple-sound-school-recordings.s3.eu-west-2.amazonaws.com/5f4b48b8-7a76-4bf4-bf26-4df21c26bc00?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIATFAXIEFMRKF57DG3%2F20230219%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230219T002657Z&X-Amz-Expires=900&X-Amz-Signature=a5933199273be22229516147fbbe742588be500c39e67d40183997659cd178cf&X-Amz-SignedHeaders=host&x-id=PutObject", {
+        method: "PUT",
+        body: formData,
+      });
+
+      setIsUploading(false);
+
+      if (response.status === 200) {
+        console.log("success");
+      } else {
+        console.log("error");
+      }
+    } catch (error) {
+      console.log("error", error);
+      setIsUploading(false);
+    }
+  }
+
+  if (mediaRecorderState === "inactive" && mp3Blob) {
+    componentToRender = (
+      <>
+        <AudioPlayer mp3Blob={mp3Blob} />
+        <Button
+          isLoading={isUploading}
+          loadingText="Uploading"
+          onClick={uploadAudio}
+        >
+          Upload
+        </Button>
+      </>
+    );
+  } else if (
+    mediaRecorderState === "inactive" &&
+    mp3Blob === null &&
+    isRecording === false
+  ) {
+    componentToRender = (
+      <>
+        <RecorderText mt="140px" color="white" />
+        <MicButton aria-label="Start recording" onClick={startRecording} />
+      </>
+    );
+  } else if (isRecording) {
+    componentToRender = (
+      <>
+        <RecorderText mt="140px" color="white" />
+        <HStack>
+          <StopButton aria-label="Stop" onClick={stopRecording} />
+          <PauseButton
+            aria-label="Pause or Resume"
+            onClick={pauseOrResumeRecording}
+          />
+        </HStack>
+      </>
+    );
+  }
+
+  return <VStack spacing="50px">{componentToRender}</VStack>;
 };
 
 export default Recorder;
