@@ -1,24 +1,27 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setToken } from './slice';
+import { useNavigate } from "react-router-dom";
 
 function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const response = await fetch('https://example.com/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await response.json();
-    const token = data.token;
+    // const response = await fetch('https://example.com/api/login', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: JSON.stringify({ email, password })
+    // });
+    // const data = await response.json();
+    const token = "ssfsfsf";/*data.token;*/
     dispatch(setToken(token));
+    navigate("/recorder");
   };
 
   return (

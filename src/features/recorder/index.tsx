@@ -12,6 +12,7 @@ import RecordButton from "./record-button";
 import PauseButton from "./pause-button";
 import StopButton from "./stop-button";
 import AudioPlayer from "./audio-player";
+import { useSelector } from "react-redux";
 
 function RecorderText(props: TextProps): JSX.Element {
   const micStatus = useMicrophoneStatus();
@@ -53,6 +54,8 @@ const Recorder = (): JSX.Element => {
   );
   const [mp3Blob, setMp3Blob] = useState(null as unknown as Blob);
   const [isUploading, setIsUploading] = useState(false);
+  const token = useSelector((state) => state.auth.token);
+  console.log(token);
 
   // request access to the audio stream
   useEffect(() => {
