@@ -5,14 +5,16 @@ import {
   TextProps,
   IconButtonProps,
   HStack,
-  Button,
+  Button, useDisclosure
 } from "@chakra-ui/react";
 import { useMicrophoneStatus } from "../../hooks/use-microphone-status";
 import RecordButton from "./record-button";
 import PauseButton from "./pause-button";
 import StopButton from "./stop-button";
 import AudioPlayer from "./audio-player";
+import ModalComponent from "../../components/modal";
 import { useSelector } from "react-redux";
+import { CreateSessionForm } from "../session";
 
 function RecorderText(props: TextProps): JSX.Element {
   const micStatus = useMicrophoneStatus();
@@ -54,8 +56,10 @@ const Recorder = (): JSX.Element => {
   );
   const [mp3Blob, setMp3Blob] = useState(null as unknown as Blob);
   const [isUploading, setIsUploading] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+
   const token = useSelector((state) => state.auth.token);
-  console.log(token);
 
   // request access to the audio stream
   useEffect(() => {
@@ -155,10 +159,14 @@ const Recorder = (): JSX.Element => {
         <Button
           isLoading={isUploading}
           loadingText="Uploading"
-          onClick={uploadAudio}
+          onClick={onOpen}
         >
           Upload
         </Button>
+
+        <ModalComponent isOpen={isOpen} onClose={onClose} modalTitle="Create Session">
+          <CreateSessionForm/>
+        </ModalComponent>
       </>
     );
   } else if (
