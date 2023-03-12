@@ -14,23 +14,27 @@ import {
 } from "@chakra-ui/react";
 import { createSessionApiResponse } from "../../types/api-reponse";
 
-function CreateSessionForm() {
+function CreateSessionForm(props: { mp3Blob: Blob }): JSX.Element {
   const token = useSelector((state) => state.auth.token);
   const [roomId, setRoomId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState("");
   const [apiRequestRunning, setApiRequestRunning] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleLogin = async (
+  const { mp3Blob } = props;
+
+  const handleSession = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     try {
       e.preventDefault();
       setApiRequestRunning(true);
-      const response = await fetch(
+      const createSessionResponse = await fetch(
         `${process.env.API_BASE_URL}/api/v1/session`,
         {
           method: "POST",
@@ -46,7 +50,8 @@ function CreateSessionForm() {
         }
       );
       setApiRequestRunning(false);
-      const data = (await response.json()) as createSessionApiResponse;
+      const data =
+        (await createSessionResponse.json()) as createSessionApiResponse;
       console.log(data);
       if (!data.success) {
         setError(data.message);
@@ -55,13 +60,46 @@ function CreateSessionForm() {
       const sessionData = data.data.session;
       const sessionUploadUrl = data.data.uploadUrl;
       dispatch(setSession({ ...sessionData, uploadUrl: sessionUploadUrl }));
-      navigate("/recorder");
+
+      await uploadAudio(sessionUploadUrl);
+
     } catch (error) {
       setError("Something went wrong");
       setApiRequestRunning(false);
     }
   };
 
+  async function uploadAudio(uploadUrl: string) {
+    setIsUploading(true);
+
+    // const formData = new FormData();
+    // formData.append("audio", mp3Blob, "audio.wav");
+
+    let response: Response = new Response();
+    try {
+      response = await fetch(
+        uploadUrl,
+        {
+          method: "PUT",
+          headers: {'Content-Type': 'audio/webm'},
+          body: mp3Blob,
+          redirect: "follow",
+        }
+      );
+
+      setIsUploading(false);
+
+      if (response.status === 200) {
+        console.log("audio successfully uploaded");
+      } else {
+        console.log("error");
+        setError("Something went wrong during upload");
+      }
+    } catch (error) {
+      setError(error as string);
+      setIsUploading(false);
+    }
+  }
 
   return (
     <Box p={8} maxWidth="500px" borderWidth={1} borderRadius={8} boxShadow="lg">
@@ -84,7 +122,7 @@ function CreateSessionForm() {
           <FormControl id="category" isRequired>
             <FormLabel>Category</FormLabel>
             <Input
-              type="category"
+              type="number"
               value={categoryId}
               onChange={(event) => setCategoryId(event.target.value)}
             />
@@ -102,7 +140,7 @@ function CreateSessionForm() {
             colorScheme="blue"
             size="lg"
             fontSize="md"
-            onClick={handleLogin}
+            onClick={handleSession}
             isLoading={apiRequestRunning}
             isDisabled={apiRequestRunning}
           >
