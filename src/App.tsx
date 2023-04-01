@@ -17,6 +17,7 @@ const PrivateRoute = ({ element: Element, isAuthenticated, ...rest }) => {
 
 function App() {
   const token = useSelector((state) => state.auth.token);
+  console.log('token', token);
   
 
   const router = createBrowserRouter([
