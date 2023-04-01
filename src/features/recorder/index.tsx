@@ -5,14 +5,16 @@ import {
   TextProps,
   IconButtonProps,
   HStack,
-  Button,
+  Button, useDisclosure
 } from "@chakra-ui/react";
 import { useMicrophoneStatus } from "../../hooks/use-microphone-status";
 import RecordButton from "./record-button";
 import PauseButton from "./pause-button";
 import StopButton from "./stop-button";
 import AudioPlayer from "./audio-player";
+import ModalComponent from "../../components/modal";
 import { useSelector } from "react-redux";
+import { CreateSessionForm } from "../session";
 
 function RecorderText(props: TextProps): JSX.Element {
   const micStatus = useMicrophoneStatus();
@@ -54,8 +56,10 @@ const Recorder = (): JSX.Element => {
   );
   const [mp3Blob, setMp3Blob] = useState(null as unknown as Blob);
   const [isUploading, setIsUploading] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+
   const token = useSelector((state) => state.auth.token);
-  console.log(token);
 
   // request access to the audio stream
   useEffect(() => {
@@ -113,40 +117,11 @@ const Recorder = (): JSX.Element => {
     console.log("mediaRecorderState", mediaRecorderState);
     console.log("recordedChunks", recordedChunks);
     if (mediaRecorderState === "inactive" && recordedChunks.length > 0) {
-      const blob = new Blob(recordedChunks, { type: "audio/wav" });
+      const blob = new Blob(recordedChunks, { type: "audio/webm" });
       setMp3Blob(blob);
     }
   }, [mediaRecorderState, recordedChunks]);
 
-  async function uploadAudio() {
-    if (!mp3Blob) {
-      return;
-    }
-
-    setIsUploading(true);
-
-    const formData = new FormData();
-    formData.append("audio", mp3Blob, "audio.wav");
-
-    let response: Response = new Response();
-    try {
-      response = await fetch("https://purple-sound-school-recordings.s3.eu-west-2.amazonaws.com/5f4b48b8-7a76-4bf4-bf26-4df21c26bc00?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIATFAXIEFMRKF57DG3%2F20230219%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230219T002657Z&X-Amz-Expires=900&X-Amz-Signature=a5933199273be22229516147fbbe742588be500c39e67d40183997659cd178cf&X-Amz-SignedHeaders=host&x-id=PutObject", {
-        method: "PUT",
-        body: formData,
-      });
-
-      setIsUploading(false);
-
-      if (response.status === 200) {
-        console.log("success");
-      } else {
-        console.log("error");
-      }
-    } catch (error) {
-      console.log("error", error);
-      setIsUploading(false);
-    }
-  }
 
   if (mediaRecorderState === "inactive" && mp3Blob) {
     componentToRender = (
@@ -155,10 +130,14 @@ const Recorder = (): JSX.Element => {
         <Button
           isLoading={isUploading}
           loadingText="Uploading"
-          onClick={uploadAudio}
+          onClick={onOpen}
         >
           Upload
         </Button>
+
+        <ModalComponent isOpen={isOpen} onClose={onClose} modalTitle="Create Session">
+          <CreateSessionForm mp3Blob={mp3Blob}/>
+        </ModalComponent>
       </>
     );
   } else if (
