@@ -59,7 +59,7 @@ const Recorder = (): JSX.Element => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
 
-  const token = useSelector((state) => state.auth.token);
+  const token = useSelector((state: any) => state.auth.token);
 
   // request access to the audio stream
   useEffect(() => {
