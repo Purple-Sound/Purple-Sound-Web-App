@@ -5,20 +5,14 @@ import { esbuildCommonjs } from '@originjs/vite-plugin-commonjs'
 import devConfig from './config.dev';
 import prodConfig from './config.prod';
 
-let config;
+const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const config = mode === 'production' ? prodConfig : devConfig;
 
-// if(import.meta.env.MODE) {
-//   config = import.meta.env.MODE === 'production' ? prodConfig : devConfig;
-// }
-
-if(process.env.MODE){
-  config = process.env.MODE === 'production' ? prodConfig : devConfig;
-}
 
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {
-    'process.env': config,
+    'process.env': JSON.stringify(config),
   },
   plugins: [
     react(),
