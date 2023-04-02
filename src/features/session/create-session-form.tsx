@@ -15,7 +15,7 @@ import {
 import { createSessionApiResponse } from "../../types/api-reponse";
 
 function CreateSessionForm(props: { mp3Blob: Blob }): JSX.Element {
-  const token = useSelector((state) => state.auth.token);
+  const token = useSelector((state: any) => state.auth.token);
   const [roomId, setRoomId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [title, setTitle] = useState<string>("");

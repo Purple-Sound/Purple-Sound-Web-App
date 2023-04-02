@@ -1,7 +1,7 @@
 import Recorder from "../features/recorder";
 import { Box } from "@chakra-ui/react";
 
-const RecorderPage = (): JSX.Element => {
+const RecorderPage = (): React.ReactElement => {
   return (
     <Box
       as="section"
