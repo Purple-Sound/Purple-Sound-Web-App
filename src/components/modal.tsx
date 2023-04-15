@@ -23,12 +23,6 @@ function ModalComponent(props: ModalComponentProps) {
         <ModalHeader>{modalTitle}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>{children}</ModalBody>
-
-        <ModalFooter>
-          <Button colorScheme="blue" mr={3} onClick={rest.onClose}>
-            Close
-          </Button>
-        </ModalFooter>
       </ModalContent>
     </Modal>
   );

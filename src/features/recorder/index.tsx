@@ -5,7 +5,8 @@ import {
   TextProps,
   IconButtonProps,
   HStack,
-  Button, useDisclosure
+  Button,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { useMicrophoneStatus } from "../../hooks/use-microphone-status";
 import RecordButton from "./record-button";
@@ -15,8 +16,15 @@ import AudioPlayer from "./audio-player";
 import ModalComponent from "../../components/modal";
 import { useSelector } from "react-redux";
 import { CreateSessionForm } from "../session";
+import Timer from "./timer";
 
-function RecorderText(props: TextProps): JSX.Element {
+interface RecorderTextProps extends TextProps {
+  recorderState: RecordingState;
+}
+
+function RecorderText(props: RecorderTextProps): JSX.Element {
+  const {recorderState, ...restProps} = props;
+
   const micStatus = useMicrophoneStatus();
   let text: string;
   if (micStatus === "prompt") {
@@ -24,11 +32,16 @@ function RecorderText(props: TextProps): JSX.Element {
   } else if (micStatus === "denied") {
     text =
       "Access to your microphone has been denied. Please allow access to continue";
-  } else {
+  } else if(recorderState === "recording"){
+    text = "Recording...";
+  } else if(recorderState === "paused"){
+    text = "Paused";
+  }
+  else {
     text = "Click the button to start recording ...";
   }
 
-  return <Text {...props}>{text}</Text>;
+  return <Text {...restProps}>{text}</Text>;
 }
 
 let componentToRender: JSX.Element;
@@ -54,10 +67,9 @@ const Recorder = (): JSX.Element => {
   const [mediaRecorderState, setMediaRecorderState] = useState(
     "inactive" as RecordingState
   );
-  const [mp3Blob, setMp3Blob] = useState(null as unknown as Blob);
+  const [mp3Blob, setMp3Blob] = useState<Blob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
-
 
   const token = useSelector((state: any) => state.auth.token);
 
@@ -122,6 +134,10 @@ const Recorder = (): JSX.Element => {
     }
   }, [mediaRecorderState, recordedChunks]);
 
+  function closeModalAndResetMP3Blob() {
+    onClose();
+    setMp3Blob(null);
+  }
 
   if (mediaRecorderState === "inactive" && mp3Blob) {
     componentToRender = (
@@ -135,8 +151,12 @@ const Recorder = (): JSX.Element => {
           Upload
         </Button>
 
-        <ModalComponent isOpen={isOpen} onClose={onClose} modalTitle="Create Session">
-          <CreateSessionForm mp3Blob={mp3Blob}/>
+        <ModalComponent
+          isOpen={isOpen}
+          onClose={onClose}
+          modalTitle="Create Session"
+        >
+          <CreateSessionForm mp3Blob={mp3Blob} onClose={closeModalAndResetMP3Blob} />
         </ModalComponent>
       </>
     );
@@ -147,26 +167,38 @@ const Recorder = (): JSX.Element => {
   ) {
     componentToRender = (
       <>
-        <RecorderText mt="140px" color="white" />
+        <RecorderText mt="140px" color="white" recorderState={mediaRecorderState}/>
         <MicButton aria-label="Start recording" onClick={startRecording} />
       </>
     );
-  } else if (isRecording) {
+  } else {
     componentToRender = (
       <>
-        <RecorderText mt="140px" color="white" />
+        <RecorderText mt="140px" color="white" recorderState={mediaRecorderState}/>
         <HStack>
-          <StopButton aria-label="Stop" onClick={stopRecording} />
+          <StopButton aria-label="Stop" onClick={stopRecording} mediaRecorderState={mediaRecorderState} />
+          <Timer recordingState={mediaRecorderState}/>
           <PauseButton
             aria-label="Pause or Resume"
             onClick={pauseOrResumeRecording}
+            mediaRecorderState={mediaRecorderState}
           />
         </HStack>
       </>
     );
   }
 
-  return <VStack spacing="50px">{componentToRender}</VStack>;
+  return (
+    <VStack
+    spacing="50px"
+      alignItems="center"
+      justifyContent="center"
+      height="100%"
+      width="100%"
+    >
+      {componentToRender}
+    </VStack>
+  );
 };
 
 export default Recorder;
