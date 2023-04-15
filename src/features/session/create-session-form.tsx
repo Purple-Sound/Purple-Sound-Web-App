@@ -11,10 +11,14 @@ import {
   FormLabel,
   Input,
   Stack,
+  useToast,
 } from "@chakra-ui/react";
 import { createSessionApiResponse } from "../../types/api-reponse";
 
-function CreateSessionForm(props: { mp3Blob: Blob }): JSX.Element {
+function CreateSessionForm(props: {
+  mp3Blob: Blob;
+  onClose: () => void;
+}): JSX.Element {
   const token = useSelector((state: any) => state.auth.token);
   const [roomId, setRoomId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
@@ -25,6 +29,7 @@ function CreateSessionForm(props: { mp3Blob: Blob }): JSX.Element {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const { mp3Blob } = props;
 
@@ -62,7 +67,6 @@ function CreateSessionForm(props: { mp3Blob: Blob }): JSX.Element {
       dispatch(setSession({ ...sessionData, uploadUrl: sessionUploadUrl }));
 
       await uploadAudio(sessionUploadUrl);
-
     } catch (error) {
       setError("Something went wrong");
       setApiRequestRunning(false);
@@ -77,19 +81,28 @@ function CreateSessionForm(props: { mp3Blob: Blob }): JSX.Element {
 
     let response: Response = new Response();
     try {
-      response = await fetch(
-        uploadUrl,
-        {
-          method: "PUT",
-          headers: {'Content-Type': 'audio/webm'},
-          body: mp3Blob,
-          redirect: "follow",
-        }
-      );
+      response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "audio/webm" },
+        body: mp3Blob,
+        redirect: "follow",
+      });
 
       setIsUploading(false);
 
       if (response.status === 200) {
+        // Show the success toast
+        toast({
+          title: "Upload Successful",
+          description: "Your recording has been uploaded successfully.",
+          status: "success",
+          duration: 15000,
+          isClosable: true,
+          position: "top",
+        });
+
+        // Close the modal and clear the mp3Blob
+        props.onClose();
         console.log("audio successfully uploaded");
       } else {
         console.log("error");
